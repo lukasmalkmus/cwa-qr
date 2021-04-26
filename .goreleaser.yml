@@ -1,0 +1,145 @@
+project_name: cwa-qr
+
+builds:
+  - <<: &build_defaults
+      binary: cwa-qr
+      main: ./cmd/cwa-qr
+      env:
+        - CGO_ENABLED=0
+      flags:
+        - -buildmode=pie
+        - -installsuffix=cgo
+        - -trimpath
+        - -tags="osusergo netgo static_build"
+      ldflags:
+        - -s -w -extldflags "-fno-PIC -static -Wl -z now -z relro"
+        - -X github.com/axiomhq/pkg/version.release={{ .Version }}
+        - -X github.com/axiomhq/pkg/version.revision={{ .ShortCommit }}
+        - -X github.com/axiomhq/pkg/version.buildDate={{ .CommitDate }}
+        - -X github.com/axiomhq/pkg/version.buildUser=goreleaser
+      mod_timestamp: "{{ .CommitTimestamp }}"
+    id: darwin
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  - <<: *build_defaults
+    id: linux
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    
+  - <<: *build_defaults
+    flags:
+      - -buildmode=exe
+      - -installsuffix=cgo
+      - -trimpath
+      - -tags="osusergo netgo static_build"
+    id: linux-arm
+    goos:
+      - linux
+    goarch:
+      - arm
+      - 386
+    goarm:
+      - 6
+      - 7
+
+  - <<: *build_defaults
+    flags:
+      - -buildmode=exe
+      - -installsuffix=cgo
+      - -trimpath
+      - -tags="osusergo netgo static_build"
+    id: docker
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+  - <<: *build_defaults
+    id: windows
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - 386
+
+archives:
+  - <<: &archive_defaults
+      name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    id: nix
+    builds:
+      - darwin
+      - linux
+      - linux-arm
+    wrap_in_directory: true
+    format: tar.gz
+    files:
+      - LICENSE
+      - README.md
+  - <<: *archive_defaults
+    id: windows
+    builds:
+      - windows
+    wrap_in_directory: false
+    format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+milestones:
+  - repo:
+      owner: lukasmalkmus
+      name: cwa-qr
+    close: true
+    fail_on_error: false
+
+release:
+  github:
+    owner: lukasmalkmus
+    name: cwa-qr
+  prerelease: auto
+  name_template: Corona Warn App QR-Code Generator v{{ .Version }}
+
+brews:
+  - name: cwa-qr
+    description: QR-Code generator for checking into events using the Corona Warn App
+    homepage: https://github.com/lukasmalkmus/cwa-qr
+    license: MIT
+    tap:
+      owner: lukasmalkmus
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TOKEN }}"
+    skip_upload: auto
+    folder: Formula
+    install: |
+      bin.install "{{ .ProjectName }}"
+    test: |
+      assert_match "Corona Warn App QR-Code Generator version #{version}", shell_output("#{bin}/{{ .ProjectName }} -version")
+
+dockers:
+  - ids:
+      - docker
+    image_templates:
+    - "lukasmalkmus/cwa-qr:{{ .Major }}"
+    - "lukasmalkmus/cwa-qr:{{ .Major }}.{{ .Minor }}"
+    - "lukasmalkmus/cwa-qr:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+    - "lukasmalkmus/cwa-qr:latest"
