@@ -1,55 +1,73 @@
 syntax = "proto3";
 
-package lukasmalkmus.cwa.v1;
+package lukasmalkmus.cwaqr.v1;
 
 option go_package = "internal/pb";
 
+// QR-Code payload without the base domain.
 message QRCodePayload {
+  // Version of the message.
   uint32 version = 1;
-  TraceLocation locationData = 2;
-  CrowdNotifierData crowdNotifierData = 3;
-  // byte sequence of CWALocationData
-  bytes vendorData = 4;
+  // Location data of the event taking place.
+  TraceLocation location = 2;
+  // Notification payload used to securely determine which crowd attended an
+  // event.
+  CrowdNotifier crowdNotifier = 3;
+  // Vendor data of the event taking place.
+  Vendor vendor = 4;
 }
 
+// Location metadata.
 message TraceLocation {
+  // Version of the message.
   uint32 version = 1;
-  // max. 100 characters
+  // Description of the event. Limited to 100 bytes.
   string description = 2;
-  // max. 100 characters
+  // Address of the event. Limited to 100 bytes.
   string address = 3;
-  // UNIX timestamp (in seconds)
+  // Start time of the event as UNIX timestamp (in seconds).
   uint64 startTimestamp = 5;
-  // UNIX timestamp (in seconds)
+  // End time of the event as UNIX timestamp (in seconds)
   uint64 endTimestamp = 6;
 }
 
-message CrowdNotifierData {
+// Crowd notification used to securely determine which crowd attended an event.
+message CrowdNotifier {
+  // Version of the message.
   uint32 version = 1;
+  // Base64 encoded byte sequence of the public key.
   bytes publicKey = 2;
+  // 16 random bytes used to uniquely fingerprint the message.
   bytes cryptographicSeed = 3;
 }
 
+// Type of an event. Can be permanent or temporary.
 enum TraceLocationType {
   LOCATION_TYPE_UNSPECIFIED = 0;
-  LOCATION_TYPE_PERMANENT_OTHER = 1;
-  LOCATION_TYPE_TEMPORARY_OTHER = 2;
+  LOCATION_TYPE_OTHER_PERMANENT = 1;
+  LOCATION_TYPE_OTHER_TEMPORARY = 2;
 
-  LOCATION_TYPE_PERMANENT_RETAIL = 3;
-  LOCATION_TYPE_PERMANENT_FOOD_SERVICE = 4;
-  LOCATION_TYPE_PERMANENT_CRAFT = 5;
-  LOCATION_TYPE_PERMANENT_WORKPLACE = 6;
-  LOCATION_TYPE_PERMANENT_EDUCATIONAL_INSTITUTION = 7;
-  LOCATION_TYPE_PERMANENT_PUBLIC_BUILDING = 8;
+  // Permanent
+  LOCATION_TYPE_RETAIL = 3;
+  LOCATION_TYPE_FOOD_SERVICE = 4;
+  LOCATION_TYPE_CRAFT = 5;
+  LOCATION_TYPE_WORKPLACE = 6;
+  LOCATION_TYPE_EDUCATIONAL_INSTITUTION = 7;
+  LOCATION_TYPE_PUBLIC_BUILDING = 8;
 
-  LOCATION_TYPE_TEMPORARY_CULTURAL_EVENT = 9;
-  LOCATION_TYPE_TEMPORARY_CLUB_ACTIVITY = 10;
-  LOCATION_TYPE_TEMPORARY_PRIVATE_EVENT = 11;
-  LOCATION_TYPE_TEMPORARY_WORSHIP_SERVICE = 12;
+  // Temporary
+  LOCATION_TYPE_CULTURAL_EVENT = 9;
+  LOCATION_TYPE_CLUB_ACTIVITY = 10;
+  LOCATION_TYPE_PRIVATE_EVENT = 11;
+  LOCATION_TYPE_WORSHIP_SERVICE = 12;
 }
 
-message CWALocationData {
+// Vendor metadata of an event.
+message Vendor {
+  // Version of the message.
   uint32 version = 1;
+  // Type of the event.
   TraceLocationType type = 2;
+  // Default stay duration at the event.
   uint32 defaultCheckInLengthInMinutes = 3;
 }

@@ -29,9 +29,9 @@ var (
 func init() {
 	flag.StringVar(&description, "description", "", "description of the event, limited to 100 characters")
 	flag.StringVar(&address, "address", "", "address of the event, limited to 100 characters")
-	flag.DurationVar(&duration, "duration", 0, "average stay duration of a temporary event")
-	flag.StringVar(&startStr, "start", "", "start time of a permanent event specified using RFC822")
-	flag.StringVar(&endStr, "end", "", "end time of a permanent event specified using RFC822")
+	flag.DurationVar(&duration, "duration", 0, "average stay duration at an event")
+	flag.StringVar(&startStr, "start", "", "start time of a temporary event specified using RFC822")
+	flag.StringVar(&endStr, "end", "", "end time of a temporary event specified using RFC822")
 }
 
 func main() {
@@ -84,24 +84,23 @@ func main() {
 			}
 		}
 
-		if eventType == nil {
+		if eventType == cwaqr.Unknown {
 			log.Fatalf("invalid event type %s", eventTypeStr)
 		}
 
-		switch eventType.(type) {
-		case cwaqr.TemporaryEventType:
-			var durationStr string
-			if err := survey.AskOne(&survey.Input{
-				Message: "How long is the average stay at the event?",
-			}, &durationStr); err != nil {
-				log.Fatal(err)
-			}
+		var durationStr string
+		if err := survey.AskOne(&survey.Input{
+			Message: "How long is the average stay at the event?",
+		}, &durationStr); err != nil {
+			log.Fatal(err)
+		}
 
-			var err error
-			if duration, err = time.ParseDuration(durationStr); err != nil {
-				log.Fatal(err)
-			}
-		case cwaqr.PermanentEventType:
+		var err error
+		if duration, err = time.ParseDuration(durationStr); err != nil {
+			log.Fatal(err)
+		}
+
+		if eventType.IsTemporary() {
 			if err := survey.AskOne(&survey.Input{
 				Message: "When does the event start?",
 			}, &startStr); err != nil {
@@ -157,11 +156,8 @@ func main() {
 
 func eventTypes() []cwaqr.EventType {
 	var res []cwaqr.EventType
-	for i := cwaqr.OtherTemporary; i <= cwaqr.WorshipService; i++ {
-		res = append(res, cwaqr.TemporaryEventType(i))
-	}
-	for i := cwaqr.OtherPermanent; i <= cwaqr.PublicBuilding; i++ {
-		res = append(res, cwaqr.PermanentEventType(i))
+	for i := cwaqr.OtherPermanent; i <= cwaqr.WorshipService; i++ {
+		res = append(res, cwaqr.EventType(i))
 	}
 	return res
 }

@@ -3,7 +3,6 @@ package cwaqr
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"time"
 
 	"github.com/skip2/go-qrcode"
@@ -35,46 +34,41 @@ func GenerateURLString(event Event) (string, error) {
 		return "", err
 	}
 
-	// Create the base payload.
-	qrCodePayload := &pb.QRCodePayload{
-		Version: 1,
-	}
-
-	// Attach trace location.
-	qrCodePayload.LocationData = &pb.TraceLocation{
+	location := &pb.TraceLocation{
 		Version:     1,
 		Description: event.Description,
 		Address:     event.Address,
 	}
 
-	// Attach crowd notifier data.
-	var err error
-	if qrCodePayload.CrowdNotifierData, err = createCrowdNotifierData(); err != nil {
+	if event.Type.IsTemporary() {
+		location.StartTimestamp = uint64(event.Start.Unix())
+		location.EndTimestamp = uint64(event.End.Unix())
+	}
+
+	cryptoSeed := make([]byte, 16)
+	if _, err := rand.Read(cryptoSeed); err != nil {
 		return "", err
 	}
 
-	// Create vendor data.
-	vendorData, err := createVendorData(event.Type)
-	if err != nil {
-		return "", err
+	crowdNotifier := &pb.CrowdNotifier{
+		Version:           1,
+		PublicKey:         []byte(publicKey),
+		CryptographicSeed: cryptoSeed,
 	}
 
-	// Depending on the event type, add the average stay duration or stay
-	// interval to the payload.
-	switch et := event.Type.(type) {
-	case TemporaryEventType:
-		eventDuration := event.Duration.Truncate(time.Minute)
-		vendorData.DefaultCheckInLengthInMinutes = uint32(eventDuration.Minutes())
-	case PermanentEventType:
-		qrCodePayload.LocationData.StartTimestamp = uint64(event.Start.Unix())
-		qrCodePayload.LocationData.EndTimestamp = uint64(event.End.Unix())
-	default:
-		return "", fmt.Errorf("invalid event type %q", et)
+	eventDuration := event.Duration.Truncate(time.Minute)
+	vendor := &pb.Vendor{
+		Version:                       1,
+		Type:                          event.Type.toProto(),
+		DefaultCheckInLengthInMinutes: uint32(eventDuration.Minutes()),
 	}
 
-	// Attach vendor data.
-	if qrCodePayload.VendorData, err = proto.Marshal(vendorData); err != nil {
-		return "", err
+	// Create the base payload.
+	qrCodePayload := &pb.QRCodePayload{
+		Version:       1,
+		Location:      location,
+		CrowdNotifier: crowdNotifier,
+		Vendor:        vendor,
 	}
 
 	// Encode the payload to its protobuf representation.
@@ -85,34 +79,4 @@ func GenerateURLString(event Event) (string, error) {
 
 	// Base64 encode the QR-Code protobuf message and generate the payload URL.
 	return baseUrl + base64.URLEncoding.EncodeToString(qrCodePb), nil
-}
-
-func createCrowdNotifierData() (*pb.CrowdNotifierData, error) {
-	rawPublicKey, err := base64.RawStdEncoding.DecodeString(publicKey)
-	if err != nil {
-		return nil, err
-	}
-
-	cryptoSeed := make([]byte, 16)
-	if _, err = rand.Read(cryptoSeed); err != nil {
-		return nil, err
-	}
-
-	return &pb.CrowdNotifierData{
-		Version:           1,
-		PublicKey:         rawPublicKey,
-		CryptographicSeed: cryptoSeed,
-	}, nil
-}
-
-func createVendorData(eventType EventType) (*pb.CWALocationData, error) {
-	pbEventType, err := getProtoEventType(eventType)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.CWALocationData{
-		Version: 1,
-		Type:    pbEventType,
-	}, nil
 }
