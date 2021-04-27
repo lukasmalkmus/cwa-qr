@@ -69,26 +69,28 @@ func main() {
 		}
 	}
 
-	var eventType cwaqr.EventType
-	if duration == 0 && startStr == "" && endStr == "" {
-		var eventTypeStr string
-		if err := survey.AskOne(&survey.Select{
-			Message: "What kind of event is taking place?",
-			Options: eventTypeStrs(),
-		}, &eventTypeStr); err != nil {
-			log.Fatal(err)
-		}
+	var (
+		eventType    cwaqr.EventType
+		eventTypeStr string
+	)
+	if err := survey.AskOne(&survey.Select{
+		Message: "What kind of event is taking place?",
+		Options: eventTypeStrs(),
+	}, &eventTypeStr); err != nil {
+		log.Fatal(err)
+	}
 
-		for _, et := range eventTypes() {
-			if et.String() == eventTypeStr {
-				eventType = et
-			}
+	for _, et := range eventTypes() {
+		if et.String() == eventTypeStr {
+			eventType = et
 		}
+	}
 
-		if eventType == cwaqr.Unknown {
-			log.Fatalf("invalid event type %s", eventTypeStr)
-		}
+	if eventType == cwaqr.Unknown {
+		log.Fatalf("invalid event type %s", eventTypeStr)
+	}
 
+	if duration == 0 {
 		var durationStr string
 		if err := survey.AskOne(&survey.Input{
 			Message: "How long is the average stay at the event?",
@@ -100,14 +102,18 @@ func main() {
 		if duration, err = time.ParseDuration(durationStr); err != nil {
 			log.Fatal(err)
 		}
+	}
 
-		if eventType.IsTemporary() {
+	if eventType.IsTemporary() {
+		if startStr == "" {
 			if err := survey.AskOne(&survey.Input{
 				Message: "When does the event start?",
 			}, &startStr); err != nil {
 				log.Fatal(err)
 			}
+		}
 
+		if endStr == "" {
 			if err := survey.AskOne(&survey.Input{
 				Message: "When does the event end?",
 			}, &endStr); err != nil {
