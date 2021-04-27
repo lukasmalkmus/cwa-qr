@@ -27,7 +27,7 @@ application for creating QR-Codes which users of the official Corona Warn App
 can use to check into events.
 
 It is an implementation of the Protocol used to generate event and location QR
-codes for the Corona Warn App as described in Coronatheir [documentation][1].
+codes for the Corona Warn App as described in their [documentation][1].
 
 This is not an official implementation! Use it at your own risk!
 
