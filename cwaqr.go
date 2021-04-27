@@ -3,6 +3,7 @@ package cwaqr
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"net/url"
 	"time"
 
 	"github.com/skip2/go-qrcode"
@@ -16,22 +17,22 @@ const (
 	publicKey = "gwLMzE153tQwAOf2MZoUXXfzWTdlSpfS99iZffmcmxOG9njSK4RTimFOFwDh6t0Tyw8XR01ugDYjtuKwjjuK49Oh83FWct6XpefPi9Skjxvvz53i9gaMmUEc96pbtoaA"
 )
 
-// GenerateQRCode creates a new QR-Code for the given event which can be scanned
-// by the Corona Warn App. The code is 512x512 in size with a recovery level of
-// "M" (15%).
-func GenerateQRCode(event Event) ([]byte, error) {
-	qrCodeContent, err := GenerateURLString(event)
+// Generate creates a new QR-Code for the given event which can be scanned by
+// the Corona Warn App. The code is 512x512 in size with a recovery level of "L"
+// (low = 7%).
+func Generate(event Event) ([]byte, error) {
+	qrCodeURL, err := GenerateURL(event)
 	if err != nil {
 		return nil, err
 	}
-	return qrcode.Encode(qrCodeContent, qrcode.Medium, 512)
+	return qrcode.Encode(qrCodeURL.String(), qrcode.Low, 512)
 }
 
-// GenerateURLString creates a new URL string which represents the content of a
+// GenerateURL creates a new URL string which represents the content of a
 // QR-Code.
-func GenerateURLString(event Event) (string, error) {
+func GenerateURL(event Event) (*url.URL, error) {
 	if err := event.Validate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	location := &pb.TraceLocation{
@@ -47,7 +48,7 @@ func GenerateURLString(event Event) (string, error) {
 
 	cryptoSeed := make([]byte, 16)
 	if _, err := rand.Read(cryptoSeed); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	crowdNotifier := &pb.CrowdNotifier{
@@ -74,9 +75,15 @@ func GenerateURLString(event Event) (string, error) {
 	// Encode the payload to its protobuf representation.
 	qrCodePb, err := proto.Marshal(qrCodePayload)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// Base64 encode the QR-Code protobuf message and generate the payload URL.
-	return baseUrl + base64.URLEncoding.EncodeToString(qrCodePb), nil
+	// Base64 encode the QR-Code protobuf message and construct the payload URL.
+	qrCodeStr := base64.URLEncoding.EncodeToString(qrCodePb)
+	u, err := url.ParseRequestURI(baseUrl + qrCodeStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
 }

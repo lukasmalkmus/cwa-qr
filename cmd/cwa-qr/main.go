@@ -8,6 +8,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/axiomhq/pkg/version"
+	"github.com/skip2/go-qrcode"
 
 	cwaqr "github.com/lukasmalkmus/cwa-qr"
 )
@@ -131,7 +132,7 @@ func main() {
 		}
 	}
 
-	qrCode, err := cwaqr.GenerateQRCode(cwaqr.Event{
+	qrCodeURL, err := cwaqr.GenerateURL(cwaqr.Event{
 		Description: description,
 		Address:     address,
 		Type:        eventType,
@@ -143,11 +144,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if f, err := os.Create(outputFile); err != nil {
-		log.Fatal(err)
-	} else if _, err = f.Write(qrCode); err != nil {
-		log.Fatal(err)
-	} else if err = f.Close(); err != nil {
+	if err = qrcode.WriteFile(qrCodeURL.String(), qrcode.Low, 512, outputFile); err != nil {
 		log.Fatal(err)
 	}
 
