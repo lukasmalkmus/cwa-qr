@@ -98,7 +98,7 @@ fmt: ## Format and simplify the source code using `gofmt`
 	@! $(GOFMT) -s -w $(shell find . -path -prune -o -name '*.go' -print) | grep '^'
 
 .PHONY: generate
-generate: event_string.go internal/pb/qr_code.pb.go ## Generate code using `go generate` or other tools
+generate: type_string.go internal/pb/qr_code.pb.go ## Generate code using `go generate` or other tools
 
 .PHONY: install
 install: $(GOPATH)/bin/cwa-qr ## Install the binary into the $GOPATH/bin directory
