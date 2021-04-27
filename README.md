@@ -33,11 +33,6 @@ This is not an official implementation! Use it at your own risk!
 
   [1]: https://github.com/corona-warn-app/cwa-documentation/blob/master/event_registration.md
 
-### State
-
-Currently, rotating QR-Codes is not implemented. The seed is random every time.
-This needs to be addressed. Unfortunaly, the documentation is missing context.
-
 ## Installation
 
 ### Download and install the pre-compiled binary manually
@@ -127,6 +122,8 @@ qrCode, err := cwaqr.GenerateQRCode(cwaqr.Event{
 Feel free to submit PRs or to fill issues. Every kind of help is appreciated.
 
 Before committing, `make` should run without any issues.
+
+At least Go 1.16 is required.
 
 ## License
 
